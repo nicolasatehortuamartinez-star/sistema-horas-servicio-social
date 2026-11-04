@@ -1,0 +1,48 @@
+servicio-social-iuc/
+├── .env.example
+├── .gitignore
+├── README.md
+├── bun.lock
+├── index.html
+├── metadata.json
+├── package.json
+├── public
+│   └── assets
+│       └── aistudio
+│           └── Proyecto_Completo_Horas_Servicio_Social_con_Mockups_b4698c71.pdf
+├── src
+│   ├── App.tsx
+│   ├── components
+│   │   ├── common
+│   │   │   ├── Badge.tsx
+│   │   │   └── Modal.tsx
+│   │   └── layout
+│   │       └── Navbar.tsx
+│   ├── context
+│   │   └── AppContext.tsx
+│   ├── data
+│   │   └── mockData.ts
+│   ├── index.css
+│   ├── main.tsx
+│   ├── pages
+│   │   ├── AuditLogView.tsx
+│   │   ├── CoordinatorDashboard.tsx
+│   │   ├── CsvImportModal.tsx
+│   │   ├── LoginView.tsx
+│   │   ├── RecordFormModal.tsx
+│   │   ├── ReportsView.tsx
+│   │   ├── ReviewRecordModal.tsx
+│   │   ├── SettingsView.tsx
+│   │   ├── StudentCertificateView.tsx
+│   │   ├── StudentDashboard.tsx
+│   │   ├── StudentsManagement.tsx
+│   │   ├── SystemArchitectureView.tsx
+│   │   └── UsersManagement.tsx
+│   ├── types
+│   │   └── index.ts
+│   └── utils
+│       └── helpers.ts
+├── supabase
+│   └── schema.sql
+├── tsconfig.json
+└── vite.config.ts

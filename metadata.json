@@ -1,0 +1,6 @@
+{
+  "name": "Sistema de Control de Horas de Servicio Social",
+  "description": "Plataforma web centralizada para el registro, validación, seguimiento y reportería de horas de servicio social estudiantil.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
