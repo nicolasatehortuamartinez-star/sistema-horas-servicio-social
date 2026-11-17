@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/layout/Navbar';
 import { LoginView } from './pages/LoginView';
@@ -14,15 +14,12 @@ import { AuditLogView } from './pages/AuditLogView';
 import { SystemArchitectureView } from './pages/SystemArchitectureView';
 import { StudentCertificateView } from './pages/StudentCertificateView';
 import { ServiceRecord } from './types';
+import { Loader2, GraduationCap } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const { currentUser, currentStudent } = useApp();
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const { currentUser, authLoading, needsRegistration, logout } = useApp();
 
-  // Tab management
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    return currentUser.role === 'student' ? 'student_dashboard' : 'coordinator_dashboard';
-  });
+  const [activeTab, setActiveTab] = useState<string>('student_dashboard');
 
   // Modal states
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
@@ -31,10 +28,15 @@ const MainApp: React.FC = () => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [recordToReview, setRecordToReview] = useState<ServiceRecord | null>(null);
 
-  // When switching role in Navbar, sync activeTab smoothly
-  React.useEffect(() => {
+  // Sync activeTab when user role changes
+  useEffect(() => {
+    if (!currentUser) return;
     if (currentUser.role === 'student') {
-      if (!['student_dashboard', 'student_records', 'student_certificate', 'architecture'].includes(activeTab)) {
+      if (
+        !['student_dashboard', 'student_records', 'student_certificate', 'architecture'].includes(
+          activeTab
+        )
+      ) {
         setActiveTab('student_dashboard');
       }
     } else {
@@ -42,7 +44,7 @@ const MainApp: React.FC = () => {
         setActiveTab('coordinator_dashboard');
       }
     }
-  }, [currentUser.role]);
+  }, [currentUser?.role, currentUser?.id]);
 
   const handleOpenNewRecord = () => {
     setRecordToEdit(null);
@@ -54,8 +56,22 @@ const MainApp: React.FC = () => {
     setIsReviewModalOpen(true);
   };
 
-  if (!isLoggedIn) {
-    return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} />;
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white gap-3">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-xl">
+          <GraduationCap className="w-8 h-8" />
+        </div>
+        <div className="flex items-center gap-2 text-sm text-emerald-300 font-medium">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Cargando plataforma institucional...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser || needsRegistration) {
+    return <LoginView />;
   }
 
   return (
@@ -65,7 +81,7 @@ const MainApp: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenNewRecord={handleOpenNewRecord}
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={logout}
       />
 
       {/* Main Content Area */}
@@ -86,9 +102,7 @@ const MainApp: React.FC = () => {
         )}
 
         {activeTab === 'student_certificate' && (
-          <StudentCertificateView
-            onBack={() => setActiveTab('student_dashboard')}
-          />
+          <StudentCertificateView onBack={() => setActiveTab('student_dashboard')} />
         )}
 
         {/* Coordinator / Admin Views */}
@@ -144,7 +158,7 @@ const MainApp: React.FC = () => {
             Sistema Web de Gestión y Control de Horas de Servicio Social · Reemplazo Oficial de Formatos Físicos
           </span>
           <span className="text-[11px] font-mono text-slate-400">
-            Versión 1.0 · Conforme a Requerimientos RF-01 al RF-16 y RNF-01 al RNF-12
+            Versión 2.0 · Base de Datos PostgreSQL & Autenticación Segura
           </span>
         </div>
       </footer>

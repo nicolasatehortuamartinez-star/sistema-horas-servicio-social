@@ -99,7 +99,7 @@ export const ReportsView: React.FC = () => {
   const handleExportCSV = () => {
     if (reportType === 'by_student') {
       const headers = [
-        'Codigo',
+        'Tarjeta_Identidad',
         'Estudiante',
         'Grado',
         'Grupo',
@@ -164,7 +164,7 @@ export const ReportsView: React.FC = () => {
       // by_record
       const headers = [
         'ID_Jornada',
-        'Codigo_Estudiante',
+        'Tarjeta_Identidad',
         'Estudiante',
         'Grado',
         'Grupo',
@@ -284,7 +284,7 @@ export const ReportsView: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Buscar por estudiante o código..."
+            placeholder="Buscar por estudiante o Tarjeta de Identidad..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
@@ -359,7 +359,7 @@ export const ReportsView: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
-                  <th className="py-2.5 px-3">Código</th>
+                  <th className="py-2.5 px-3">Tarjeta de Identidad</th>
                   <th className="py-2.5 px-3">Estudiante</th>
                   <th className="py-2.5 px-3">Grupo</th>
                   <th className="py-2.5 px-3 text-center">Meta</th>

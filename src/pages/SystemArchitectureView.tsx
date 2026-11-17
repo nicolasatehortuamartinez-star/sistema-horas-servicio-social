@@ -160,29 +160,31 @@ export const SystemArchitectureView: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-3">
             <h4 className="text-sm font-bold text-slate-800">Estructura de Componentes y Páginas</h4>
             <div className="text-xs font-mono bg-slate-900 text-slate-200 p-4 rounded-xl overflow-x-auto leading-relaxed">
+              server.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ API Express segura, RBAC por rol y middleware de autenticación<br />
               src/<br />
-              ├── types/index.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Entidades (profiles, students, service_records, settings, audit_logs)<br />
-              ├── context/AppContext.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Store central, cálculo RF-08, simulación de usuarios, audit_logs<br />
-              ├── data/mockData.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Datos de demostración verosímiles de colegio (grados 10° y 11°)<br />
-              ├── utils/helpers.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Formateadores de fecha en español, generador y parser CSV con BOM<br />
+              ├── db/schema.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Esquema PostgreSQL (Drizzle ORM) para las 5 entidades<br />
+              ├── db/repository.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Consultas transaccionales y control de duplicados<br />
+              ├── lib/firebase.ts &amp; admin.ts → Autenticación Firebase Auth y verificación JWT<br />
+              ├── types/index.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Entidades (profiles, students, service_records, settings, audit_logs)<br />
+              ├── context/AppContext.tsx &nbsp;&nbsp;&nbsp;&nbsp;→ Estado sincronizado con API REST, cálculo RF-08, sesión real<br />
+              ├── utils/helpers.ts &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Formateadores de fecha en español, generador y parser CSV con BOM<br />
               ├── components/<br />
-              │ &nbsp;&nbsp;├── common/Badge.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Badges para estados (Aprobada, Pendiente, Rechazada, Borrador) y roles<br />
-              │ &nbsp;&nbsp;├── common/Modal.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Modal accesible reutilizable con animaciones<br />
-              │ &nbsp;&nbsp;└── layout/Navbar.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Barra institucional con switch rápido de rol demo<br />
-              ├── pages/<br />
-              │ &nbsp;&nbsp;├── LoginView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Mockup 6.1 (Ingreso de credenciales o botón demo directo)<br />
-              │ &nbsp;&nbsp;├── StudentDashboard.tsx &nbsp;&nbsp;&nbsp;→ Mockup 6.2 (Indicadores, horas aprobadas vs meta, filtros)<br />
-              │ &nbsp;&nbsp;├── RecordFormModal.tsx &nbsp;&nbsp;&nbsp;&nbsp;→ Mockup 6.3 (Formulario jornada, validaciones, borrador y evidencia)<br />
-              │ &nbsp;&nbsp;├── CoordinatorDashboard.tsx→ Mockup 6.4 (KPIs, bandeja pendientes, filtros avanzados)<br />
-              │ &nbsp;&nbsp;├── ReviewRecordModal.tsx &nbsp;&nbsp;→ Mockup 6.5 (Revisión, rechazo con observación obligatoria)<br />
-              │ &nbsp;&nbsp;├── StudentsManagement.tsx &nbsp;→ RF-03 (CRUD estudiantes, barras individuales, switch activo)<br />
-              │ &nbsp;&nbsp;├── CsvImportModal.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-16 (Asistente de carga masiva CSV, validación duplicados)<br />
-              │ &nbsp;&nbsp;├── UsersManagement.tsx &nbsp;&nbsp;&nbsp;&nbsp;→ RF-04 (Gestión de perfiles institucionales y roles)<br />
-              │ &nbsp;&nbsp;├── ReportsView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-12 & Mockup 6.6 (Exportar CSV y reporte imprimible PDF)<br />
-              │ &nbsp;&nbsp;├── SettingsView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-15 (Metas de horas, políticas configurables)<br />
-              │ &nbsp;&nbsp;├── AuditLogView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-13 & RNF-11 (Trazabilidad de cambios y payloads)<br />
-              │ &nbsp;&nbsp;└── StudentCertificateView.tsx → Constancia oficial de cumplimiento con membrete institucional<br />
-              └── supabase/schema.sql &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ DDL PostgreSQL completo con RLS y Triggers
+              │ &nbsp;&nbsp;├── common/Badge.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Badges para estados (Aprobada, Pendiente, Rechazada, Borrador) y roles<br />
+              │ &nbsp;&nbsp;├── common/Modal.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Modal accesible reutilizable con animaciones<br />
+              │ &nbsp;&nbsp;└── layout/Navbar.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Barra institucional y menú según rol autenticado<br />
+              └── pages/<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── LoginView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ Acceso Google / Correo y auto-registro de estudiantes<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── StudentDashboard.tsx &nbsp;&nbsp;→ Indicadores, horas aprobadas vs meta, filtros<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── RecordFormModal.tsx &nbsp;&nbsp;&nbsp;→ Formulario jornada, validaciones, borrador y evidencia<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── CoordinatorDashboard.tsx→ KPIs, bandeja pendientes, filtros avanzados<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── ReviewRecordModal.tsx &nbsp;→ Revisión, rechazo con observación obligatoria<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── StudentsManagement.tsx → RF-03 (CRUD estudiantes, barras individuales, switch activo)<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── CsvImportModal.tsx &nbsp;&nbsp;&nbsp;&nbsp;→ RF-16 (Carga masiva CSV validada en PostgreSQL)<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── UsersManagement.tsx &nbsp;&nbsp;&nbsp;→ RF-04 (Gestión de perfiles institucionales y roles)<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── ReportsView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-12 (Exportar CSV y reporte imprimible PDF)<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── SettingsView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-15 (Metas de horas, políticas y validación de códigos)<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;├── AuditLogView.tsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ RF-13 &amp; RNF-11 (Trazabilidad de cambios y payloads)<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;└── StudentCertificateView.tsx → Constancia oficial de cumplimiento con membrete institucional
             </div>
           </div>
         </div>
@@ -487,20 +489,20 @@ export const SystemArchitectureView: React.FC = () => {
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
               <span className="font-bold text-slate-900 block mb-1">Prueba 4: Importación masiva CSV (RF-16)</span>
               <p className="text-slate-600">
-                • <strong>Paso:</strong> Vaya a <em>"Estudiantes" → "Importar CSV"</em> y descargue la plantilla o cargue un código ya existente (ej: EST-2026-001).
+                • <strong>Paso:</strong> Vaya a <em>"Estudiantes" → "Importar CSV"</em>, descargue la plantilla y cargue un archivo con una Tarjeta de Identidad ya existente.
               </p>
               <p className="text-emerald-700 font-medium mt-1">
-                • <strong>Resultado esperado:</strong> Detección previa de duplicados con fila resaltada en rojo antes de guardar en la base de datos.
+                • <strong>Resultado esperado:</strong> Validación numérica de la Tarjeta de Identidad y detección previa de duplicados antes de guardar en la base de datos.
               </p>
             </div>
 
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-              <span className="font-bold text-slate-900 block mb-1">Prueba 5: Generación de Certificado de 100% Horas Cumplidas</span>
+              <span className="font-bold text-slate-900 block mb-1">Prueba 5: Límite de 80 Horas y Certificado de Cumplimiento</span>
               <p className="text-slate-600">
-                • <strong>Paso:</strong> En el selector de demo, elija al estudiante <em>Mateo Castaño</em> (80h de 80h aprobadas).
+                • <strong>Paso:</strong> Registre y apruebe jornadas hasta completar las 80 horas máximas reglamentarias para un estudiante registrado.
               </p>
               <p className="text-emerald-700 font-medium mt-1">
-                • <strong>Resultado esperado:</strong> Se activa el banner de felicitaciones y la opción <em>"Mi Constancia"</em>, generando el certificado oficial imprimible.
+                • <strong>Resultado esperado:</strong> El sistema impide exceder las 80 horas y habilita el banner de felicitaciones junto con <em>"Mi Constancia"</em> imprimible.
               </p>
             </div>
           </div>

@@ -99,13 +99,25 @@ export const CoordinatorDashboard: React.FC<CoordinatorDashboardProps> = ({
   }, [records, students, searchTerm, statusFilter, groupFilter, gradeFilter, dateFrom, dateTo]);
 
   // Quick single-click approve
-  const handleQuickApprove = (e: React.MouseEvent, record: ServiceRecord) => {
+  const [actionError, setActionError] = useState('');
+  const handleQuickApprove = async (e: React.MouseEvent, record: ServiceRecord) => {
     e.stopPropagation();
-    approveRecord(record.id, 'Aprobado rápidamente desde la bandeja de coordinación.');
+    setActionError('');
+    try {
+      await approveRecord(record.id, 'Aprobado rápidamente desde la bandeja de coordinación.');
+    } catch (error: any) {
+      setActionError(error?.message || 'No se pudo aprobar la jornada.');
+    }
   };
 
   return (
     <div className="space-y-6">
+      {actionError && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
       {/* KPI Counters Banner (Mockup 6.4) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Active students */}
@@ -218,7 +230,7 @@ export const CoordinatorDashboard: React.FC<CoordinatorDashboardProps> = ({
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Buscar estudiante, código o actividad..."
+                placeholder="Buscar estudiante, T.I. o actividad..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
@@ -301,7 +313,7 @@ export const CoordinatorDashboard: React.FC<CoordinatorDashboardProps> = ({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50/80 text-slate-600 font-semibold border-b border-slate-200">
-                  <th className="py-3 px-4">Estudiante / Código</th>
+                  <th className="py-3 px-4">Estudiante / T.I.</th>
                   <th className="py-3 px-4">Grupo</th>
                   <th className="py-3 px-4">Fecha</th>
                   <th className="py-3 px-4">Actividad y Supervisor</th>
@@ -322,7 +334,7 @@ export const CoordinatorDashboard: React.FC<CoordinatorDashboardProps> = ({
                       <td className="py-3.5 px-4 font-medium text-slate-800 whitespace-nowrap">
                         <div className="font-bold text-slate-900">{student?.full_name || 'Desconocido'}</div>
                         <div className="text-[11px] font-mono text-slate-500">
-                          {student?.student_code}
+                          T.I. {student?.student_code}
                         </div>
                       </td>
 

@@ -1,23 +1,21 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { RoleBadge } from '../common/Badge';
-import { 
-  GraduationCap, 
-  LayoutDashboard, 
-  CheckSquare, 
-  Users, 
-  UserCog, 
-  FileSpreadsheet, 
-  Settings, 
-  History, 
-  FileCode, 
-  PlusCircle, 
-  LogOut, 
-  Menu, 
-  X, 
-  UserCheck, 
-  Sparkles,
-  Award
+import {
+  GraduationCap,
+  LayoutDashboard,
+  CheckSquare,
+  Users,
+  UserCog,
+  FileSpreadsheet,
+  Settings,
+  History,
+  FileCode,
+  PlusCircle,
+  LogOut,
+  Menu,
+  X,
+  Award,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -33,14 +31,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewRecord,
   onLogout,
 }) => {
-  const { currentUser, profiles, switchUserById, pendingRecordsCount, settings, currentStudent, getStudentProgress } = useApp();
+  const { currentUser, pendingRecordsCount, settings, currentStudent, getStudentProgress } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  if (!currentUser) return null;
 
   const isStudent = currentUser.role === 'student';
   const isAdmin = currentUser.role === 'admin';
   const isCoordinator = currentUser.role === 'coordinator' || isAdmin;
-  const isSupervisor = currentUser.role === 'supervisor';
+  const canStudentRegister =
+    isStudent && settings.who_can_register !== 'coordinator_only';
 
   const studentProgress = currentStudent ? getStudentProgress(currentStudent.id) : null;
 
@@ -62,36 +63,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </div>
 
-          {/* Quick Demo Switcher */}
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-slate-400 text-[11px] font-medium flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" /> Modo Demo:
-            </span>
-            <select
-              value={currentUser.id}
-              onChange={(e) => switchUserById(e.target.value)}
-              className="bg-slate-800 hover:bg-slate-700 text-white text-xs rounded-md px-2 py-1 border border-slate-700 focus:outline-hidden focus:ring-1 focus:ring-emerald-400 cursor-pointer font-medium"
-              title="Cambiar rápidamente entre usuarios ficticios para probar diferentes roles"
-            >
-              <optgroup label="Personal Institucional">
-                {profiles
-                  .filter((p) => p.role !== 'student')
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.role === 'admin' ? '🛡️ Admin' : p.role === 'coordinator' ? '📋 Coordinador' : '🧑‍🏫 Supervisor'} - {p.full_name}
-                    </option>
-                  ))}
-              </optgroup>
-              <optgroup label="Estudiantes con Diferentes Avances">
-                {profiles
-                  .filter((p) => p.role === 'student')
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      🎓 Estudiante - {p.full_name}
-                    </option>
-                  ))}
-              </optgroup>
-            </select>
+          <div className="text-[11px] text-slate-400 hidden sm:flex items-center gap-2">
+            <span>Sesión verificada:</span>
+            <span className="text-slate-200 font-semibold">{currentUser.email}</span>
           </div>
         </div>
       </div>
@@ -101,7 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div 
+            <div
               onClick={() => handleTabClick(isStudent ? 'student_dashboard' : 'coordinator_dashboard')}
               className="flex items-center gap-2.5 cursor-pointer group"
             >
@@ -231,30 +205,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <FileSpreadsheet className="w-4 h-4" />
                   Reportes
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleTabClick('settings')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === 'settings'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <Settings className="w-4 h-4" />
-                  Configuración
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTabClick('audit')}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === 'audit'
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <History className="w-4 h-4" />
-                  Auditoría
-                </button>
+                {isCoordinator && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleTabClick('settings')}
+                      className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        activeTab === 'settings'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Configuración
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTabClick('audit')}
+                      className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        activeTab === 'audit'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      <History className="w-4 h-4" />
+                      Auditoría
+                    </button>
+                  </>
+                )}
               </>
             )}
 
@@ -266,7 +244,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-indigo-50 text-indigo-700 font-semibold'
                   : 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50/70'
               }`}
-              title="Especificación técnica, trazabilidad RF/RNF y guía Supabase"
+              title="Especificación técnica y trazabilidad RF/RNF"
             >
               <FileCode className="w-4 h-4 text-indigo-600" />
               Arquitectura
@@ -275,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Action Button & User Badge */}
           <div className="flex items-center gap-3">
-            {(isStudent || isCoordinator) && (
+            {(canStudentRegister || isCoordinator) && (
               <button
                 type="button"
                 onClick={onOpenNewRecord}
@@ -292,7 +270,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2 p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-left"
+                className="flex items-center gap-2 p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-left cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs uppercase border border-slate-300">
                   {currentUser.full_name.slice(0, 2)}
@@ -319,8 +297,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                   {currentStudent && (
                     <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 text-xs">
-                      <span className="text-slate-500">Código:</span>{' '}
-                      <span className="font-semibold text-slate-800">{currentStudent.student_code}</span>
+                      <span className="text-slate-500">T.I.:</span>{' '}
+                      <span className="font-semibold font-mono text-slate-800">{currentStudent.student_code}</span>
                       <div className="text-slate-500 mt-0.5">
                         Grado {currentStudent.grade} ({currentStudent.group_name})
                       </div>
@@ -334,7 +312,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setUserDropdownOpen(false);
                         onLogout();
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       Cerrar sesión / Salir
@@ -444,26 +422,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <FileSpreadsheet className="w-4 h-4" />
                 Reportes
               </button>
-              <button
-                type="button"
-                onClick={() => handleTabClick('settings')}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg ${
-                  activeTab === 'settings' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700'
-                }`}
-              >
-                <Settings className="w-4 h-4" />
-                Configuración
-              </button>
-              <button
-                type="button"
-                onClick={() => handleTabClick('audit')}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg ${
-                  activeTab === 'audit' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700'
-                }`}
-              >
-                <History className="w-4 h-4" />
-                Auditoría
-              </button>
+              {isCoordinator && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleTabClick('settings')}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg ${
+                      activeTab === 'settings' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700'
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Configuración
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabClick('audit')}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg ${
+                      activeTab === 'audit' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-700'
+                    }`}
+                  >
+                    <History className="w-4 h-4" />
+                    Auditoría
+                  </button>
+                </>
+              )}
             </>
           )}
           <button
@@ -474,7 +456,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             <FileCode className="w-4 h-4" />
-            Arquitectura y Guía Supabase
+            Arquitectura del Sistema
           </button>
         </div>
       )}

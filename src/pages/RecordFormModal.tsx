@@ -15,16 +15,17 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
   onClose,
   recordToEdit,
 }) => {
-  const { 
-    currentUser, 
-    currentStudent, 
-    students, 
-    settings, 
-    addRecord, 
-    updateRecord 
+  const {
+    currentUser,
+    currentStudent,
+    students,
+    settings,
+    getStudentProgress,
+    addRecord,
+    updateRecord,
   } = useApp();
 
-  const isStudent = currentUser.role === 'student';
+  const isStudent = currentUser?.role === 'student';
   const activeStudents = students.filter((s) => s.active);
 
   // Form states
@@ -55,10 +56,8 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
         setEvidenceUrl(recordToEdit.evidence_url || '');
         setEvidenceName(recordToEdit.evidence_name || '');
       } else {
-        // New record
         const defaultStudentId = currentStudent ? currentStudent.id : (activeStudents[0]?.id || '');
         setSelectedStudentId(defaultStudentId);
-        // Default today's date in YYYY-MM-DD
         const today = new Date().toISOString().split('T')[0];
         setServiceDate(today);
         setActivityName('');
@@ -72,11 +71,32 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
     }
   }, [isOpen, recordToEdit, currentStudent]);
 
-  const validateForm = (): boolean => {
+  const activeStudentIdForQuota = (isStudent && currentStudent) ? currentStudent.id : selectedStudentId;
+  const studentQuotaInfo = (() => {
+    if (!activeStudentIdForQuota) {
+      return { targetHours: 80, usedHours: 0, availableToRegister: 80 };
+    }
+    const prog = getStudentProgress(activeStudentIdForQuota);
+    const editingIncludedHours =
+      recordToEdit &&
+      recordToEdit.student_id === activeStudentIdForQuota &&
+      (recordToEdit.status === 'approved' || recordToEdit.status === 'pending')
+        ? Number(recordToEdit.hours) || 0
+        : 0;
+    const usedHours = Number(Math.max(0, prog.approvedHours + prog.pendingHours - editingIncludedHours).toFixed(1));
+    const availableToRegister = Number(Math.max(0, prog.targetHours - usedHours).toFixed(1));
+    return {
+      targetHours: prog.targetHours,
+      usedHours,
+      availableToRegister,
+    };
+  })();
+
+  const validateForm = (targetStatus: 'draft' | 'pending'): boolean => {
     setValidationError('');
 
     if (!selectedStudentId) {
-      setValidationError('Debe seleccionar un estudiante.');
+      setValidationError('Debe seleccionar o contar con un estudiante registrado.');
       return false;
     }
 
@@ -85,7 +105,6 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
       return false;
     }
 
-    // Future date check
     const selectedDateObj = new Date(serviceDate);
     const today = new Date();
     today.setHours(23, 59, 59, 999);
@@ -111,6 +130,13 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
       return false;
     }
 
+    if (targetStatus === 'pending' && hoursNum > studentQuotaInfo.availableToRegister) {
+      setValidationError(
+        `No puedes enviar ${hoursNum}h porque excederías el máximo de ${studentQuotaInfo.targetHours} horas de servicio social. Disponibles para registrar: ${studentQuotaInfo.availableToRegister}h.`
+      );
+      return false;
+    }
+
     if (!supervisorName.trim()) {
       setValidationError('El nombre del supervisor o responsable de la actividad es obligatorio.');
       return false;
@@ -129,19 +155,18 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
     return true;
   };
 
-  const handleSave = (status: 'draft' | 'pending') => {
-    if (!validateForm()) return;
+  const handleSave = async (status: 'draft' | 'pending') => {
+    if (!validateForm(status)) return;
 
     setIsSubmitting(true);
+    setValidationError('');
 
     try {
       const hoursNum = parseFloat(hours);
-
       const targetStudentId = (isStudent && currentStudent) ? currentStudent.id : selectedStudentId;
 
       if (recordToEdit) {
-        // Editing existing record
-        updateRecord(recordToEdit.id, {
+        await updateRecord(recordToEdit.id, {
           student_id: targetStudentId,
           service_date: serviceDate,
           activity_name: activityName.trim(),
@@ -155,8 +180,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
           submitted_at: status === 'pending' ? new Date().toISOString() : recordToEdit.submitted_at,
         });
       } else {
-        // Adding new record
-        addRecord({
+        await addRecord({
           student_id: targetStudentId,
           service_date: serviceDate,
           activity_name: activityName.trim(),
@@ -171,6 +195,8 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
       }
 
       onClose();
+    } catch (error: any) {
+      setValidationError(error?.message || 'No se pudo guardar la jornada en la base de datos.');
     } finally {
       setIsSubmitting(false);
     }
@@ -219,7 +245,7 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
               <div>
                 <span className="font-bold text-slate-900 text-sm block">{currentStudent.full_name}</span>
                 <span className="text-slate-600 font-medium text-[11px]">
-                  Código: <strong className="font-mono text-emerald-800">{currentStudent.student_code}</strong> · Grado {currentStudent.grade} ({currentStudent.group_name})
+                  Tarjeta de Identidad: <strong className="font-mono text-emerald-800">{currentStudent.student_code}</strong> · Grado {currentStudent.grade} ({currentStudent.group_name})
                 </span>
               </div>
               <span className="text-[11px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
@@ -232,11 +258,15 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
               onChange={(e) => setSelectedStudentId(e.target.value)}
               className="w-full p-2.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             >
-              {activeStudents.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name} — {s.student_code} ({s.grade} - {s.group_name})
-                </option>
-              ))}
+              {activeStudents.length === 0 ? (
+                <option value="">No hay estudiantes activos registrados todavía</option>
+              ) : (
+                activeStudents.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.full_name} — T.I. {s.student_code} ({s.grade} - {s.group_name})
+                  </option>
+                ))
+              )}
             </select>
           )}
         </div>
@@ -276,8 +306,11 @@ export const RecordFormModal: React.FC<RecordFormModalProps> = ({
                 className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-slate-800 font-mono font-bold"
               />
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-              Máximo {settings.max_hours_per_day || 8} h por jornada institucional.
+            <p className="text-[10px] text-slate-500 mt-1">
+              Máximo {settings.max_hours_per_day || 8}h por jornada · Cupo disponible de tu meta ({studentQuotaInfo.targetHours}h):{' '}
+              <strong className={studentQuotaInfo.availableToRegister === 0 ? 'text-rose-600' : 'text-emerald-700'}>
+                {studentQuotaInfo.availableToRegister}h
+              </strong>
             </p>
           </div>
         </div>

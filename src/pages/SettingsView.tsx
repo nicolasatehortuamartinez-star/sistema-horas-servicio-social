@@ -1,34 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Settings, Save, RotateCcw, AlertTriangle, CheckCircle2, ShieldAlert, Sliders } from 'lucide-react';
+import { Settings, Save, AlertTriangle, CheckCircle2, Sliders, ShieldCheck } from 'lucide-react';
 
 export const SettingsView: React.FC = () => {
-  const { settings, updateSettings, resetAllData, currentUser } = useApp();
+  const { settings, updateSettings } = useApp();
 
   const [institutionName, setInstitutionName] = useState(settings.institution_name);
   const [academicYear, setAcademicYear] = useState(settings.academic_year);
   const [requiredHours, setRequiredHours] = useState(String(settings.required_hours));
-  const [target9, setTarget9] = useState(String(settings.grade_targets?.['9°'] || 20));
-  const [target10, setTarget10] = useState(String(settings.grade_targets?.['10°'] || 30));
-  const [target11, setTarget11] = useState(String(settings.grade_targets?.['11°'] || 30));
+  const [target9, setTarget9] = useState(String(settings.grade_targets?.['9°'] ?? 80));
+  const [target10, setTarget10] = useState(String(settings.grade_targets?.['10°'] ?? 80));
+  const [target11, setTarget11] = useState(String(settings.grade_targets?.['11°'] ?? 80));
   const [maxHoursDay, setMaxHoursDay] = useState(String(settings.max_hours_per_day || 8));
   const [whoCanRegister, setWhoCanRegister] = useState(settings.who_can_register);
   const [enableSupervisor, setEnableSupervisor] = useState(settings.enable_supervisor_role);
   const [allowDraft, setAllowDraft] = useState(settings.allow_draft_status);
   const [requireEvidence, setRequireEvidence] = useState(settings.require_evidence);
+  const [requirePreRegisteredCode, setRequirePreRegisteredCode] = useState(
+    Boolean(settings.require_pre_registered_code)
+  );
+  const [allowedEmailDomain, setAllowedEmailDomain] = useState(
+    settings.allowed_email_domain || ''
+  );
 
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    setInstitutionName(settings.institution_name);
+    setAcademicYear(settings.academic_year);
+    setRequiredHours(String(settings.required_hours));
+    setTarget9(String(settings.grade_targets?.['9°'] ?? 80));
+    setTarget10(String(settings.grade_targets?.['10°'] ?? 80));
+    setTarget11(String(settings.grade_targets?.['11°'] ?? 80));
+    setMaxHoursDay(String(settings.max_hours_per_day || 8));
+    setWhoCanRegister(settings.who_can_register);
+    setEnableSupervisor(settings.enable_supervisor_role);
+    setAllowDraft(settings.allow_draft_status);
+    setRequireEvidence(settings.require_evidence);
+    setRequirePreRegisteredCode(Boolean(settings.require_pre_registered_code));
+    setAllowedEmailDomain(settings.allowed_email_domain || '');
+  }, [settings]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSavedSuccess(false);
 
     const reqHoursNum = parseFloat(requiredHours);
-    if (isNaN(reqHoursNum) || reqHoursNum <= 0) {
-      setErrorMsg('La meta obligatoria de horas debe ser un número mayor a cero.');
+    if (isNaN(reqHoursNum) || reqHoursNum <= 0 || reqHoursNum > 80) {
+      setErrorMsg('La meta obligatoria de horas debe estar entre 1 y 80 horas máximas de servicio social.');
+      return;
+    }
+
+    const t9 = parseFloat(target9);
+    const t10 = parseFloat(target10);
+    const t11 = parseFloat(target11);
+    if ([t9, t10, t11].some((v) => isNaN(v) || v <= 0 || v > 80)) {
+      setErrorMsg('Las metas por grado (9°, 10° y 11°) deben estar entre 1 y 80 horas máximas.');
       return;
     }
 
@@ -38,40 +68,33 @@ export const SettingsView: React.FC = () => {
       return;
     }
 
-    updateSettings({
-      institution_name: institutionName.trim(),
-      academic_year: academicYear.trim(),
-      required_hours: reqHoursNum,
-      grade_targets: {
-        '9°': parseFloat(target9) || 20,
-        '10°': parseFloat(target10) || 30,
-        '11°': parseFloat(target11) || 30,
-      },
-      max_hours_per_day: maxDayNum,
-      who_can_register: whoCanRegister,
-      enable_supervisor_role: enableSupervisor,
-      allow_draft_status: allowDraft,
-      require_evidence: requireEvidence,
-    });
+    setIsSaving(true);
+    try {
+      await updateSettings({
+        institution_name: institutionName.trim(),
+        academic_year: academicYear.trim(),
+        required_hours: reqHoursNum,
+        grade_targets: {
+          '9°': t9,
+          '10°': t10,
+          '11°': t11,
+        },
+        max_hours_per_day: maxDayNum,
+        who_can_register: whoCanRegister,
+        enable_supervisor_role: enableSupervisor,
+        allow_draft_status: allowDraft,
+        require_evidence: requireEvidence,
+        require_pre_registered_code: requirePreRegisteredCode,
+        allowed_email_domain: allowedEmailDomain.trim().toLowerCase().replace(/^@/, ''),
+      });
 
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
-  };
-
-  const handleResetData = () => {
-    resetAllData();
-    setResetConfirmOpen(false);
-    setInstitutionName('I. U. C. (Instituto Universitario de Caldas)');
-    setAcademicYear('2026');
-    setRequiredHours('80');
-    setTarget9('20');
-    setTarget10('30');
-    setTarget11('30');
-    setMaxHoursDay('8');
-    setWhoCanRegister('student_and_coordinator');
-    setEnableSupervisor(true);
-    setAllowDraft(true);
-    setRequireEvidence(false);
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Error al guardar los parámetros en la base de datos.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -84,24 +107,15 @@ export const SettingsView: React.FC = () => {
             <span>Configuración y Parámetros Institucionales (RF-15)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Defina metas de horas, políticas de registro y reglas aprobadas por el colegio.
+            Defina metas de horas, políticas de registro y validación estudiantil guardadas en PostgreSQL.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setResetConfirmOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Restablecer Datos Demo</span>
-        </button>
       </div>
 
       {savedSuccess && (
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-800 flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span className="font-bold">¡Parámetros institucionales actualizados correctamente en el sistema!</span>
+          <span className="font-bold">¡Parámetros institucionales guardados correctamente en la base de datos!</span>
         </div>
       )}
 
@@ -149,33 +163,30 @@ export const SettingsView: React.FC = () => {
         {/* Section 2: Hour Requirements */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
           <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
-            Metas y Límites de Horas (RF-08, RNF-06)
+            Metas y Límites de Horas (Máximo reglamentario: 80 horas · RF-08, RNF-06)
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">
-                Meta Global Exigida (Horas)
+                Meta Global Exigida (Máx. 80h)
               </label>
               <input
                 type="number"
                 min="1"
+                max="80"
                 value={requiredHours}
                 onChange={(e) => setRequiredHours(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono font-bold"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Requisito ministerial para graduación (usualmente 80h en Colombia).
-              </p>
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Meta Grado 9° (Horas)
-              </label>
+              <label className="block font-semibold text-slate-700 mb-1">Meta Grado 9° (Máx. 80h)</label>
               <input
                 type="number"
-                min="0"
+                min="1"
+                max="80"
                 value={target9}
                 onChange={(e) => setTarget9(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono"
@@ -183,12 +194,11 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Meta Grado 10° (Horas)
-              </label>
+              <label className="block font-semibold text-slate-700 mb-1">Meta Grado 10° (Máx. 80h)</label>
               <input
                 type="number"
-                min="0"
+                min="1"
+                max="80"
                 value={target10}
                 onChange={(e) => setTarget10(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono"
@@ -196,12 +206,11 @@ export const SettingsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Meta Grado 11° (Horas)
-              </label>
+              <label className="block font-semibold text-slate-700 mb-1">Meta Grado 11° (Máx. 80h)</label>
               <input
                 type="number"
-                min="0"
+                min="1"
+                max="80"
                 value={target11}
                 onChange={(e) => setTarget11(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono"
@@ -220,17 +229,15 @@ export const SettingsView: React.FC = () => {
                 onChange={(e) => setMaxHoursDay(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Previene registros excesivos en una sola fecha.
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Section 3: Business rules & permissions */}
+        {/* Section 3: Business rules & institutional validation */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
-            Políticas de Registro y Aprobación
+          <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>Políticas de Registro, Validación Institucional y Aprobación</span>
           </h3>
 
           <div className="space-y-4 text-xs">
@@ -249,7 +256,7 @@ export const SettingsView: React.FC = () => {
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
                   <span>
-                    <strong>Tanto estudiantes como coordinadores</strong> (Recomendado: el estudiante envía la solicitud y el coordinador valida)
+                    <strong>Tanto estudiantes como coordinadores</strong> (El estudiante envía la solicitud y el coordinador valida)
                   </span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -299,7 +306,7 @@ export const SettingsView: React.FC = () => {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer sm:col-span-2">
+              <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={enableSupervisor}
@@ -309,10 +316,40 @@ export const SettingsView: React.FC = () => {
                 <div>
                   <span className="font-bold text-slate-800 block">Habilitar rol de Docente Supervisor</span>
                   <span className="text-slate-500 text-[11px]">
-                    Permite a profesores confirmar o visar actividades de los estudiantes antes del visto bueno de coordinación.
+                    Permite a docentes confirmar o visar actividades antes de la aprobación final.
                   </span>
                 </div>
               </label>
+
+              <label className="flex items-start gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/30 hover:bg-emerald-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={requirePreRegisteredCode}
+                  onChange={(e) => setRequirePreRegisteredCode(e.target.checked)}
+                  className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
+                />
+                <div>
+                  <span className="font-bold text-emerald-900 block">
+                    Exigir Tarjeta de Identidad pre-cargada en matrícula
+                  </span>
+                  <span className="text-emerald-800 text-[11px]">
+                    Si se activa, solo podrán crear cuenta los estudiantes cuya Tarjeta de Identidad haya sido importada o registrada previamente por coordinación.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <label className="block font-semibold text-slate-700 mb-1">
+                Dominio de correo institucional permitido para auto-registro (Opcional)
+              </label>
+              <input
+                type="text"
+                value={allowedEmailDomain}
+                onChange={(e) => setAllowedEmailDomain(e.target.value)}
+                placeholder="Ej: iuc.edu.co (dejar vacío para permitir cualquier correo válido)"
+                className="w-full sm:w-96 px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono"
+              />
             </div>
           </div>
         </div>
@@ -321,44 +358,14 @@ export const SettingsView: React.FC = () => {
         <div className="flex justify-end gap-3">
           <button
             type="submit"
-            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-700/20 transition-all cursor-pointer flex items-center gap-2"
+            disabled={isSaving}
+            className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 shadow-md shadow-emerald-700/20 transition-all cursor-pointer flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
-            <span>Guardar Parámetros Institucionales</span>
+            <span>{isSaving ? 'Guardando...' : 'Guardar Parámetros Institucionales'}</span>
           </button>
         </div>
       </form>
-
-      {/* Reset Confirmation Modal */}
-      {resetConfirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <ShieldAlert className="w-6 h-6" />
-              <h4 className="text-base font-bold text-slate-900">¿Restablecer datos de demostración?</h4>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Esta acción borrará los cambios locales en el navegador y volverá a cargar los estudiantes, registros de jornada de prueba y configuración por defecto del I. U. C. (Instituto Universitario de Caldas).
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setResetConfirmOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleResetData}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md cursor-pointer"
-              >
-                Sí, Restablecer Todo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

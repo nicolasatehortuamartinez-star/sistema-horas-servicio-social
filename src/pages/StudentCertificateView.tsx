@@ -81,7 +81,7 @@ export const StudentCertificateView: React.FC<StudentCertificateViewProps> = ({ 
             </p>
 
             <p className="text-xs sm:text-sm text-slate-600">
-              Identificado(a) con código estudiantil <span className="font-bold text-slate-800 font-mono">{currentStudent.student_code}</span>, 
+              Identificado(a) con Tarjeta de Identidad <span className="font-bold text-slate-800 font-mono">{currentStudent.student_code}</span>, 
               del grado <span className="font-bold text-slate-800">{currentStudent.grade}</span> ({currentStudent.group_name}), 
               ha cumplido satisfactoriamente con la totalidad de:
             </p>
@@ -119,13 +119,13 @@ export const StudentCertificateView: React.FC<StudentCertificateViewProps> = ({ 
           <div className="mt-14 pt-8 border-t border-slate-200 grid grid-cols-2 gap-8 max-w-xl mx-auto text-center">
             <div>
               <div className="h-10 border-b border-dashed border-slate-400 mx-6 mb-2" />
-              <p className="text-xs font-bold text-slate-800">Prof. Marcela Gómez</p>
-              <p className="text-[11px] text-slate-500">Coordinadora de Servicio Social</p>
+              <p className="text-xs font-bold text-slate-800">Coordinación de Servicio Social</p>
+              <p className="text-[11px] text-slate-500">{settings.institution_name}</p>
             </div>
             <div>
               <div className="h-10 border-b border-dashed border-slate-400 mx-6 mb-2" />
-              <p className="text-xs font-bold text-slate-800">Lic. Carlos Restrepo</p>
-              <p className="text-[11px] text-slate-500">Rector / Dirección General</p>
+              <p className="text-xs font-bold text-slate-800">Rectoría / Dirección General</p>
+              <p className="text-[11px] text-slate-500">{settings.institution_name}</p>
             </div>
           </div>
 

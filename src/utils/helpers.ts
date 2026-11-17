@@ -72,6 +72,33 @@ export const downloadCSV = (filename: string, rows: string[][]) => {
 };
 
 /**
+ * Normalizes and validates Tarjeta de Identidad (student_code)
+ */
+export const normalizeAndValidateTI = (
+  raw: string
+): { valid: boolean; value: string; error?: string } => {
+  const cleaned = String(raw || '')
+    .trim()
+    .replace(/[\s.]/g, '');
+  if (!cleaned) {
+    return {
+      valid: false,
+      value: '',
+      error: 'La Tarjeta de Identidad (código estudiantil) es obligatoria.',
+    };
+  }
+  if (!/^\d{6,12}$/.test(cleaned)) {
+    return {
+      valid: false,
+      value: cleaned,
+      error:
+        'La Tarjeta de Identidad debe contener únicamente entre 6 y 12 dígitos numéricos (sin letras ni símbolos).',
+    };
+  }
+  return { valid: true, value: cleaned };
+};
+
+/**
  * Parses simple CSV content for student import
  */
 export const parseStudentCSV = (
@@ -98,18 +125,27 @@ export const parseStudentCSV = (
   const headers = headerLine.split(delimiter).map((h) => h.trim().toLowerCase().replace(/"/g, ''));
 
   // Map header positions
-  const codeIdx = headers.findIndex((h) => h.includes('codigo') || h.includes('código') || h === 'code');
+  const codeIdx = headers.findIndex(
+    (h) =>
+      h.includes('tarjeta') ||
+      h.includes('identidad') ||
+      h.includes('documento') ||
+      h === 'ti' ||
+      h.includes('codigo') ||
+      h.includes('código') ||
+      h === 'code'
+  );
   const nameIdx = headers.findIndex((h) => h.includes('nombre') || h.includes('name'));
   const emailIdx = headers.findIndex((h) => h.includes('correo') || h.includes('email'));
   const gradeIdx = headers.findIndex((h) => h.includes('grado') || h.includes('grade'));
   const groupIdx = headers.findIndex((h) => h.includes('grupo') || h.includes('curso') || h === 'group');
   const phoneIdx = headers.findIndex((h) => h.includes('telefono') || h.includes('teléfono') || h.includes('phone'));
 
-  if (codeIdx === -1 || nameIdx === -1) {
+  if (codeIdx === -1 || nameIdx === -1 || emailIdx === -1) {
     return {
       data: [],
       errors: [
-        'Cabecera inválida. Se requieren al menos las columnas "codigo" y "nombre". Formato esperado: codigo,nombre,email,grado,grupo',
+        'Cabecera inválida. Se requieren las columnas "tarjeta_identidad", "nombre" y "email". Formato esperado: tarjeta_identidad,nombre,email,grado,grupo,telefono',
       ],
     };
   }
@@ -133,28 +169,37 @@ export const parseStudentCSV = (
       .split(delimiter)
       .map((c) => c.trim().replace(/^"|"$/g, '').trim());
 
-    const student_code = cols[codeIdx] || '';
+    const rawCode = cols[codeIdx] || '';
     const full_name = cols[nameIdx] || '';
-    const email = emailIdx !== -1 ? cols[emailIdx] || '' : '';
+    const email = (cols[emailIdx] || '').trim().toLowerCase();
     const grade = gradeIdx !== -1 ? cols[gradeIdx] || '10°' : '10°';
-    const group_name = groupIdx !== -1 ? cols[groupIdx] || '10A' : '10A';
+    const group_name = groupIdx !== -1 ? cols[groupIdx] || '' : '';
     const phone = phoneIdx !== -1 ? cols[phoneIdx] : undefined;
 
-    if (!student_code) {
-      errors.push(`Fila ${i + 1}: Código de estudiante vacío.`);
+    const tiCheck = normalizeAndValidateTI(rawCode);
+    if (!tiCheck.valid) {
+      errors.push(`Fila ${i + 1}: ${tiCheck.error}`);
       continue;
     }
     if (!full_name) {
       errors.push(`Fila ${i + 1}: Nombre de estudiante vacío.`);
       continue;
     }
+    if (!email || !email.includes('@')) {
+      errors.push(`Fila ${i + 1} (T.I. ${tiCheck.value}): Correo electrónico inválido o vacío.`);
+      continue;
+    }
+    if (!group_name) {
+      errors.push(`Fila ${i + 1} (T.I. ${tiCheck.value}): Grupo vacío.`);
+      continue;
+    }
 
     results.push({
-      student_code,
+      student_code: tiCheck.value,
       full_name,
-      email: email || `${student_code.toLowerCase()}@estudiante.edu.co`,
+      email,
       grade: grade.includes('°') ? grade : `${grade}°`,
-      group_name,
+      group_name: group_name.toUpperCase(),
       phone,
     });
   }

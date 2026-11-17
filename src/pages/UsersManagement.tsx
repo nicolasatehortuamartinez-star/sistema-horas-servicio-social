@@ -64,7 +64,9 @@ export const UsersManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -77,35 +79,31 @@ export const UsersManagement: React.FC = () => {
       return;
     }
 
-    // Check duplicate email
-    const duplicate = profiles.find(
-      (p) =>
-        p.email.toLowerCase() === formData.email.trim().toLowerCase() &&
-        (!editingProfile || p.id !== editingProfile.id)
-    );
-    if (duplicate) {
-      setErrorMsg(`El correo "${formData.email}" ya está registrado en otra cuenta.`);
-      return;
-    }
+    setIsSaving(true);
+    try {
+      if (editingProfile) {
+        await updateUser(editingProfile.id, {
+          full_name: formData.full_name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          role: formData.role,
+          phone: formData.phone.trim() || undefined,
+        });
+      } else {
+        await createUser({
+          full_name: formData.full_name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          role: formData.role,
+          active: true,
+          phone: formData.phone.trim() || undefined,
+        });
+      }
 
-    if (editingProfile) {
-      updateUser(editingProfile.id, {
-        full_name: formData.full_name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        role: formData.role,
-        phone: formData.phone.trim() || undefined,
-      });
-    } else {
-      createUser({
-        full_name: formData.full_name.trim(),
-        email: formData.email.trim().toLowerCase(),
-        role: formData.role,
-        active: true,
-        phone: formData.phone.trim() || undefined,
-      });
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Error al guardar el usuario en la base de datos.');
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsModalOpen(false);
   };
 
   return (
@@ -211,17 +209,17 @@ export const UsersManagement: React.FC = () => {
                   <td className="py-3.5 px-4 text-center whitespace-nowrap">
                     <button
                       type="button"
-                      disabled={profile.id === currentUser.id}
+                      disabled={profile.id === currentUser?.id}
                       onClick={() => toggleUserStatus(profile.id)}
                       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                        profile.id === currentUser.id
+                        profile.id === currentUser?.id
                           ? 'opacity-60 cursor-not-allowed bg-emerald-50 text-emerald-700'
                           : profile.active
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer'
                           : 'bg-slate-100 text-slate-500 border border-slate-200 cursor-pointer'
                       }`}
                       title={
-                        profile.id === currentUser.id
+                        profile.id === currentUser?.id
                           ? 'No puede desactivar su propia cuenta'
                           : 'Haga clic para cambiar estado'
                       }
@@ -335,9 +333,10 @@ export const UsersManagement: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 font-bold text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-60 rounded-xl shadow-md cursor-pointer"
             >
-              Guardar Usuario
+              {isSaving ? 'Guardando...' : 'Guardar Usuario'}
             </button>
           </div>
         </form>

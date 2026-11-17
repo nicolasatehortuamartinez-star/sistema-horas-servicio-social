@@ -33,29 +33,44 @@ export const ReviewRecordModal: React.FC<ReviewRecordModalProps> = ({
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [confirmApprove, setConfirmApprove] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
 
   if (!record) return null;
 
   const student = students.find((s) => s.id === record.student_id);
-  const isPending = record.status === 'pending';
 
-  const handleApprove = () => {
-    approveRecord(record.id, 'Jornada verificada y aprobada por coordinación.');
-    setConfirmApprove(false);
-    onClose();
+  const handleApprove = async () => {
+    setErrorMsg('');
+    setIsBusy(true);
+    try {
+      await approveRecord(record.id, 'Jornada verificada y aprobada por coordinación.');
+      setConfirmApprove(false);
+      onClose();
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Error al aprobar la jornada.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     setErrorMsg('');
     if (!rejectReason.trim() || rejectReason.trim().length < 8) {
       setErrorMsg('Requerimiento RF-06: Es obligatorio escribir una observación clara (mínimo 8 caracteres) que explique qué debe corregir el estudiante.');
       return;
     }
 
-    rejectRecord(record.id, rejectReason.trim());
-    setShowRejectInput(false);
-    setRejectReason('');
-    onClose();
+    setIsBusy(true);
+    try {
+      await rejectRecord(record.id, rejectReason.trim());
+      setShowRejectInput(false);
+      setRejectReason('');
+      onClose();
+    } catch (error: any) {
+      setErrorMsg(error?.message || 'Error al rechazar la jornada.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   return (
@@ -81,7 +96,7 @@ export const ReviewRecordModal: React.FC<ReviewRecordModalProps> = ({
             <div>
               <h4 className="text-sm font-bold text-slate-900">{student?.full_name || 'Estudiante'}</h4>
               <p className="text-xs text-slate-500">
-                Código: <span className="font-mono font-semibold text-slate-700">{student?.student_code}</span> · Grado {student?.grade} ({student?.group_name})
+                Tarjeta de Identidad: <span className="font-mono font-semibold text-slate-700">{student?.student_code}</span> · Grado {student?.grade} ({student?.group_name})
               </p>
             </div>
           </div>
@@ -218,10 +233,11 @@ export const ReviewRecordModal: React.FC<ReviewRecordModalProps> = ({
               </button>
               <button
                 type="button"
+                disabled={isBusy}
                 onClick={handleReject}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs cursor-pointer"
+                className="px-4 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-lg shadow-xs cursor-pointer"
               >
-                Confirmar Rechazo
+                {isBusy ? 'Procesando...' : 'Confirmar Rechazo'}
               </button>
             </div>
           </div>
@@ -247,10 +263,11 @@ export const ReviewRecordModal: React.FC<ReviewRecordModalProps> = ({
               </button>
               <button
                 type="button"
+                disabled={isBusy}
                 onClick={handleApprove}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs cursor-pointer"
+                className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-lg shadow-xs cursor-pointer"
               >
-                Sí, Aprobar Horas
+                {isBusy ? 'Procesando...' : 'Sí, Aprobar Horas'}
               </button>
             </div>
           </div>
@@ -267,7 +284,7 @@ export const ReviewRecordModal: React.FC<ReviewRecordModalProps> = ({
           </button>
 
           {/* If the current user has permission to review (coordinator, admin, supervisor) */}
-          {(currentUser.role === 'coordinator' || currentUser.role === 'admin' || currentUser.role === 'supervisor') && !showRejectInput && !confirmApprove && (
+          {(currentUser?.role === 'coordinator' || currentUser?.role === 'admin' || currentUser?.role === 'supervisor') && !showRejectInput && !confirmApprove && (
             <div className="flex items-center gap-2">
               <button
                 type="button"

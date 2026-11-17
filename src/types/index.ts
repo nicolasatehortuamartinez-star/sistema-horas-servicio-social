@@ -65,6 +65,8 @@ export interface InstitutionSettings {
   allow_draft_status: boolean;
   require_evidence: boolean;
   allow_edit_after_approval: boolean;
+  require_pre_registered_code?: boolean;
+  allowed_email_domain?: string;
   updated_at: string;
   updated_by?: string;
 }

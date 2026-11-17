@@ -32,6 +32,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const { currentStudent, getStudentProgress, records, settings, submitDraftRecord } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [actionError, setActionError] = useState('');
 
   if (!currentStudent) {
     return (
@@ -41,13 +42,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
         <h3 className="text-xl font-bold text-slate-800">Perfil de estudiante no vinculado</h3>
         <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto">
-          El usuario activo actual no tiene un registro de estudiante asociado en la base de datos de estudiantes.
-          Por favor seleccione un perfil de estudiante desde el selector superior o desde la gestión de estudiantes.
+          Su cuenta actual aún no tiene un registro de estudiante asociado en la base de datos institucional.
+          Comuníquese con la coordinación para verificar su matrícula.
         </p>
       </div>
     );
   }
 
+  const canRegister = settings.who_can_register !== 'coordinator_only';
   const progress = getStudentProgress(currentStudent.id);
   const studentRecords = useMemo(() => {
     return records
@@ -66,15 +68,31 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     });
   }, [studentRecords, searchTerm, statusFilter]);
 
+  const handleSubmitDraft = async (id: string) => {
+    setActionError('');
+    try {
+      await submitDraftRecord(id);
+    } catch (err: any) {
+      setActionError(err?.message || 'No se pudo enviar el borrador a revisión.');
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {actionError && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      )}
+
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-emerald-950/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-200 border border-emerald-400/20 px-3 py-1 rounded-full text-xs font-medium mb-3">
             <span>Estudiante Activo · Grado {currentStudent.grade} ({currentStudent.group_name})</span>
             <span>·</span>
-            <span>Cód: {currentStudent.student_code}</span>
+            <span>T.I.: {currentStudent.student_code}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Hola, {currentStudent.full_name}
@@ -84,16 +102,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           </p>
         </div>
 
-        <div className="shrink-0 flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={onOpenNewRecord}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 active:bg-slate-100 font-bold text-sm shadow-lg shadow-black/10 transition-all cursor-pointer"
-          >
-            <PlusCircle className="w-5 h-5 text-emerald-600" />
-            <span>Registrar Nueva Jornada</span>
-          </button>
-        </div>
+        {canRegister && (
+          <div className="shrink-0 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={onOpenNewRecord}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 active:bg-slate-100 font-bold text-sm shadow-lg shadow-black/10 transition-all cursor-pointer"
+            >
+              <PlusCircle className="w-5 h-5 text-emerald-600" />
+              <span>Registrar Nueva Jornada</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Completion Banner if completed! */}
@@ -355,7 +375,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         {rec.status === 'draft' && (
                           <button
                             type="button"
-                            onClick={() => submitDraftRecord(rec.id)}
+                            onClick={() => handleSubmitDraft(rec.id)}
                             className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1 transition-colors cursor-pointer"
                             title="Enviar borrador a revisión por el coordinador"
                           >

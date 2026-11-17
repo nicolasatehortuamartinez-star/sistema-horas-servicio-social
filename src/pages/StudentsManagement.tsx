@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Modal } from '../components/common/Modal';
 import { Student } from '../types';
 import { CsvImportModal } from './CsvImportModal';
+import { normalizeAndValidateTI } from '../utils/helpers';
 import { 
   Users, 
   UserPlus, 
@@ -81,11 +82,11 @@ export const StudentsManagement: React.FC = () => {
   const handleOpenCreate = () => {
     setEditingStudent(null);
     setFormData({
-      student_code: `EST-2026-0${students.length + 1}`,
+      student_code: '',
       full_name: '',
       email: '',
-      grade: '11°',
-      group_name: '11A',
+      grade: '10°',
+      group_name: '',
       phone: '',
     });
     setFormError('');
@@ -106,12 +107,15 @@ export const StudentsManagement: React.FC = () => {
     setIsStudentModalOpen(true);
   };
 
-  const handleSaveStudent = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
-    if (!formData.student_code.trim()) {
-      setFormError('El código del estudiante es obligatorio.');
+    const tiCheck = normalizeAndValidateTI(formData.student_code);
+    if (!tiCheck.valid) {
+      setFormError(tiCheck.error!);
       return;
     }
 
@@ -120,42 +124,46 @@ export const StudentsManagement: React.FC = () => {
       return;
     }
 
-    // Check code duplication if new or changed
-    const duplicate = students.find(
-      (s) =>
-        s.student_code.toLowerCase() === formData.student_code.trim().toLowerCase() &&
-        (!editingStudent || s.id !== editingStudent.id)
-    );
-
-    if (duplicate) {
-      setFormError(`El código "${formData.student_code}" ya está registrado a nombre de ${duplicate.full_name}.`);
+    if (!formData.group_name.trim()) {
+      setFormError('El grupo es obligatorio.');
       return;
     }
 
-    const emailToUse = formData.email.trim() || `${formData.student_code.toLowerCase()}@estudiante.edu.co`;
-
-    if (editingStudent) {
-      updateStudent(editingStudent.id, {
-        student_code: formData.student_code.trim(),
-        full_name: formData.full_name.trim(),
-        email: emailToUse,
-        grade: formData.grade,
-        group_name: formData.group_name,
-        phone: formData.phone.trim() || undefined,
-      });
-    } else {
-      createStudent({
-        student_code: formData.student_code.trim(),
-        full_name: formData.full_name.trim(),
-        email: emailToUse,
-        grade: formData.grade,
-        group_name: formData.group_name,
-        phone: formData.phone.trim() || undefined,
-        active: true,
-      });
+    const emailToUse = formData.email.trim();
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setFormError('Ingrese un correo electrónico válido.');
+      return;
     }
 
-    setIsStudentModalOpen(false);
+    setIsSaving(true);
+    try {
+      if (editingStudent) {
+        await updateStudent(editingStudent.id, {
+          student_code: tiCheck.value,
+          full_name: formData.full_name.trim(),
+          email: emailToUse.toLowerCase(),
+          grade: formData.grade,
+          group_name: formData.group_name.trim().toUpperCase(),
+          phone: formData.phone.trim() || undefined,
+        });
+      } else {
+        await createStudent({
+          student_code: tiCheck.value,
+          full_name: formData.full_name.trim(),
+          email: emailToUse.toLowerCase(),
+          grade: formData.grade,
+          group_name: formData.group_name.trim().toUpperCase(),
+          phone: formData.phone.trim() || undefined,
+          active: true,
+        });
+      }
+
+      setIsStudentModalOpen(false);
+    } catch (err: any) {
+      setFormError(err?.message || 'Error al guardar el estudiante en la base de datos.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -199,7 +207,7 @@ export const StudentsManagement: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Buscar por nombre, código o correo..."
+            placeholder="Buscar por nombre, Tarjeta de Identidad o correo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
@@ -259,7 +267,7 @@ export const StudentsManagement: React.FC = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50/80 text-slate-600 font-semibold border-b border-slate-200">
-                  <th className="py-3 px-4">Código / Nombre</th>
+                  <th className="py-3 px-4">Tarjeta de Identidad / Nombre</th>
                   <th className="py-3 px-4">Grado y Grupo</th>
                   <th className="py-3 px-4">Avance de Horas Aprobadas (RF-08)</th>
                   <th className="py-3 px-4 text-center">Estado</th>
@@ -279,7 +287,7 @@ export const StudentsManagement: React.FC = () => {
                           <div>
                             <div className="font-bold text-slate-900">{student.full_name}</div>
                             <div className="text-[11px] text-slate-500 font-mono">
-                              {student.student_code} · {student.email}
+                              T.I. {student.student_code} · {student.email}
                             </div>
                           </div>
                         </div>
@@ -385,13 +393,16 @@ export const StudentsManagement: React.FC = () => {
 
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
-              Código Estudiantil Único <span className="text-rose-500">*</span>
+              Tarjeta de Identidad (Código Estudiantil Obligatorio) <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
+              inputMode="numeric"
+              required
+              maxLength={15}
               value={formData.student_code}
               onChange={(e) => setFormData({ ...formData, student_code: e.target.value })}
-              placeholder="EST-2026-001"
+              placeholder="Ej: 1053841290 (solo números)"
               className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono text-slate-800"
             />
           </div>
@@ -402,9 +413,10 @@ export const StudentsManagement: React.FC = () => {
             </label>
             <input
               type="text"
+              required
               value={formData.full_name}
               onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              placeholder="Ej. Valentina Mejía Castro"
+              placeholder="Nombres y apellidos completos del estudiante"
               className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-medium"
             />
           </div>
@@ -427,21 +439,25 @@ export const StudentsManagement: React.FC = () => {
               <label className="block font-semibold text-slate-700 mb-1">Grupo</label>
               <input
                 type="text"
+                required
                 value={formData.group_name}
                 onChange={(e) => setFormData({ ...formData, group_name: e.target.value })}
-                placeholder="10A, 10B, 11A..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono"
+                placeholder="9A, 10B, 11A..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 font-mono uppercase"
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Correo Institucional</label>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Correo Electrónico <span className="text-rose-500">*</span>
+            </label>
             <input
               type="email"
+              required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="nombre@estudiante.edu.co"
+              placeholder="correo@ejemplo.edu.co"
               className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800"
             />
           </div>
@@ -467,9 +483,14 @@ export const StudentsManagement: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl shadow-md cursor-pointer"
             >
-              {editingStudent ? 'Actualizar Estudiante' : 'Guardar Estudiante'}
+              {isSaving
+                ? 'Guardando...'
+                : editingStudent
+                ? 'Actualizar Estudiante'
+                : 'Guardar Estudiante'}
             </button>
           </div>
         </form>

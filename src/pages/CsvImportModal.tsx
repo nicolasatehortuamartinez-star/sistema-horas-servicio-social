@@ -17,12 +17,10 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, onClose 
   const [importSummary, setImportSummary] = useState<{ success: number; errors: string[] } | null>(null);
 
   const sampleTemplate = () => {
-    const headers = ['codigo', 'nombre', 'email', 'grado', 'grupo', 'telefono'];
+    const headers = ['tarjeta_identidad', 'nombre', 'email', 'grado', 'grupo', 'telefono'];
     const sampleRows = [
       headers,
-      ['EST-2026-020', 'Laura Mariana Morales', 'laura.morales@estudiante.edu.co', '10°', '10A', '+57 311 222 3344'],
-      ['EST-2026-021', 'Samuel David Gómez', 'samuel.gomez@estudiante.edu.co', '11°', '11B', '+57 312 444 5566'],
-      ['EST-2026-022', 'Mariana Pérez Silva', 'mariana.perez@estudiante.edu.co', '11°', '11A', '+57 315 777 8899'],
+      ['1000000001', 'Nombre Completo Estudiante', 'estudiante@iuc.edu.co', '10°', '10A', ''],
     ];
     downloadCSV('plantilla_importacion_estudiantes.csv', sampleRows);
   };
@@ -47,33 +45,45 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, onClose 
     setParsedData(data);
   };
 
-  const handleConfirmImport = () => {
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleConfirmImport = async () => {
     if (parsedData.length === 0) return;
 
-    const result = importStudentsCSV(
-      parsedData.map((d) => ({
-        student_code: d.student_code,
-        full_name: d.full_name,
-        email: d.email,
-        grade: d.grade,
-        group_name: d.group_name,
-        active: true,
-        phone: d.phone,
-      }))
-    );
+    setIsImporting(true);
+    try {
+      const result = await importStudentsCSV(
+        parsedData.map((d) => ({
+          student_code: d.student_code,
+          full_name: d.full_name,
+          email: d.email,
+          grade: d.grade,
+          group_name: d.group_name,
+          active: true,
+          phone: d.phone,
+        }))
+      );
 
-    setImportSummary({
-      success: result.successCount,
-      errors: result.errors,
-    });
+      setImportSummary({
+        success: result.successCount,
+        errors: result.errors,
+      });
 
-    if (result.successCount > 0 && result.errors.length === 0) {
-      setTimeout(() => {
-        onClose();
-        setCsvText('');
-        setParsedData([]);
-        setImportSummary(null);
-      }, 1500);
+      if (result.successCount > 0 && result.errors.length === 0) {
+        setTimeout(() => {
+          onClose();
+          setCsvText('');
+          setParsedData([]);
+          setImportSummary(null);
+        }, 1500);
+      }
+    } catch (err: any) {
+      setImportSummary({
+        success: 0,
+        errors: [err?.message || 'Error al importar estudiantes en la base de datos.'],
+      });
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -91,7 +101,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, onClose 
           <div>
             <span className="font-bold text-slate-800 block">¿No tiene el formato adecuado?</span>
             <span className="text-slate-500">
-              Descargue una plantilla preconfigurada con columnas: codigo, nombre, email, grado, grupo, telefono.
+              Descargue la plantilla con las columnas obligatorias: tarjeta_identidad, nombre, email, grado, grupo, telefono.
             </span>
           </div>
           <button
@@ -128,7 +138,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, onClose 
               setCsvText(e.target.value);
               processCsvText(e.target.value);
             }}
-            placeholder={`codigo,nombre,email,grado,grupo,telefono\nEST-2026-030,Camilo Serna,camilo@estudiante.edu.co,10°,10B,3001234567`}
+            placeholder={`tarjeta_identidad,nombre,email,grado,grupo,telefono\n1053841290,Nombre Completo del Estudiante,correo@iuc.edu.co,10°,10B,`}
             className="w-full p-2.5 text-xs font-mono rounded-xl border border-slate-300 text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
           />
         </div>
@@ -182,7 +192,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, onClose 
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-600 text-[11px]">
                   <tr>
-                    <th className="p-2">Código</th>
+                    <th className="p-2">Tarjeta de Identidad</th>
                     <th className="p-2">Nombre Completo</th>
                     <th className="p-2">Grado / Grupo</th>
                     <th className="p-2">Correo</th>
@@ -220,12 +230,16 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({ isOpen, onClose 
           </button>
           <button
             type="button"
-            disabled={parsedData.length === 0}
+            disabled={parsedData.length === 0 || isImporting}
             onClick={handleConfirmImport}
             className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Confirmar e Importar {parsedData.length} Estudiante(s)</span>
+            <span>
+              {isImporting
+                ? 'Importando...'
+                : `Confirmar e Importar ${parsedData.length} Estudiante(s)`}
+            </span>
           </button>
         </div>
       </div>
