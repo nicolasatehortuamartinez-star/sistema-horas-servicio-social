@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 import { and, eq, ilike, ne } from 'drizzle-orm';
 import type { RecordStatus, Student } from './src/types/index.ts';
 import { requireAuth, AuthRequest } from './src/middleware/auth.ts';
@@ -1283,6 +1282,7 @@ app.put('/api/settings', requireAuth, async (req: AuthRequest, res) => {
 // Vite / Static Serving setup
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -1301,4 +1301,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
